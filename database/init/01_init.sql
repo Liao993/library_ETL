@@ -84,31 +84,10 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_books_updated_at BEFORE UPDATE ON books
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Insert default admin user (password: admin123 - CHANGE IN PRODUCTION!)
--- Bcrypt hash generated for 'admin123'
+-- make the passwrod is in the .env file
 INSERT INTO users (username, password_hash, role) 
 VALUES ('admin', '$2b$12$mWxEhTbVKcc47xuvPRIKyezqvgBtGXOMzpCuefO43T7.TYmUjxMuS', 'admin')
 ON CONFLICT (username) DO NOTHING;
 
--- Insert some sample data for testing (optional)
-INSERT INTO teachers (name, classroom) VALUES 
-    ('John Smith', 'Room 101'),
-    ('Jane Doe', 'Room 102'),
-    ('Bob Johnson', 'Room 103')
-ON CONFLICT DO NOTHING;
 
-INSERT INTO categories (category_name, category_label) VALUES 
-    ('Fiction', 'FIC'),
-    ('Non-Fiction', 'NF'),
-    ('Science', 'SCI'),
-    ('History', 'HIST'),
-    ('Mathematics', 'MATH')
-ON CONFLICT (category_label) DO NOTHING;
 
-INSERT INTO locations (category_label, location_name) VALUES 
-    ('FIC', 'Shelf A1'),
-    ('NF', 'Shelf B1'),
-    ('SCI', 'Shelf C1'),
-    ('HIST', 'Shelf D1'),
-    ('MATH', 'Shelf E1')
-ON CONFLICT DO NOTHING;

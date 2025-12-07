@@ -91,12 +91,68 @@ graph TB
 
 The database schema is designed to ensure data integrity and efficient querying.
 
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    users {
+        int user_id PK
+        string username
+        string password_hash
+        string role
+        timestamp created_at
+    }
+    teachers {
+        int teacher_id PK
+        string name
+        string classroom
+        timestamp created_at
+    }
+    categories {
+        int category_id PK
+        string category_name
+        string category_label
+        timestamp created_at
+    }
+    locations {
+        int location_id PK
+        string category_label FK
+        string location_name
+        timestamp created_at
+    }
+    books {
+        string book_id PK
+        string name
+        int category_id FK
+        int storage_location_id FK
+        string status
+        timestamp created_at
+        timestamp updated_at
+    }
+    transactions {
+        int transaction_id PK
+        string book_id FK
+        int teacher_id FK
+        string action
+        date transaction_date
+        timestamp timestamp
+        string notes
+    }
+
+    locations }o--|| categories : "category_label"
+    books }o--|| categories : "category_id"
+    books }o--|| locations : "storage_location_id"
+    transactions }o--|| books : "book_id"
+    transactions }o--|| teachers : "teacher_id"
+```
+
 ### Schema Overview
 
 *   **`books`**: Central inventory table.
 *   **`transactions`**: Records all borrow/return events.
 *   **`teachers`**: Stores borrower information.
 *   **`categories` & `locations`**: Normalized tables for book metadata.
+*   **`users`**: Stores authentication details for system administrators.
 
 #### Key Tables
 
