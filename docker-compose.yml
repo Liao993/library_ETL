@@ -57,7 +57,7 @@ services:
     volumes:
       - ./frontend:/app
     ports:
-      - "8501:8501"
+      - "8502:8501"
     depends_on:
       - backend
     networks:

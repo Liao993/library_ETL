@@ -70,7 +70,7 @@ docker-compose.override.yml
 *.csv
 *.xlsx
 !example_data/*.csv
-!data/*.csv
+
 
 # Logs
 *.log
