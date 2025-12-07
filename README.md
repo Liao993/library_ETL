@@ -28,7 +28,53 @@ The system follows a microservices architecture:
 | **ETL** | Python/Pandas | Data processing scripts |
 | **Orchestrator** | Airflow | Schedules and monitors pipelines |
 
---
+
+```mermaid
+graph TB
+    subgraph "Data Sources"
+        CSV[Book CSV File]
+        GForm[Google Form/Sheet]
+    end
+    
+    subgraph "Data Pipeline Layer"
+        ETL1[CSV ETL Script]
+        Airbyte[Airbyte]
+        Airflow[Airflow Orchestrator]
+        GE[Great Expectations]
+    end
+    
+    subgraph "Storage Layer"
+        DB[(PostgreSQL Database)]
+    end
+    
+    subgraph "Application Layer"
+        API[FastAPI Backend]
+        Auth[Authentication]
+    end
+    
+    subgraph "Presentation Layer"
+        UI[Streamlit UI]
+        Login[Login Page]
+        Dashboard[Book Dashboard]
+        Search[Search Page]
+    end
+    
+    CSV --> ETL1
+    GForm --> Airbyte
+    ETL1 --> GE
+    Airbyte --> GE
+    GE --> DB
+    Airflow -.orchestrates.-> ETL1
+    Airflow -.orchestrates.-> Airbyte
+    DB --> API
+    API --> UI
+    Auth --> UI
+    UI --> Login
+    UI --> Dashboard
+    UI --> Search
+```
+
+---
 
 ## 🛠 Prerequisites
 
@@ -54,6 +100,11 @@ cp .env.example .env
 
 ### 3. Start All Services
 Run the following command to build and start the system:
+- Multi-container setup with Docker Compose
+- Services: PostgreSQL, FastAPI, Streamlit, Airflow, ETL
+- Separate Dockerfiles for each service
+- Health checks and dependencies configured
+
 ```bash
 docker-compose up -d --build
 ```
@@ -72,12 +123,12 @@ library_system/
 ├── backend/          # FastAPI REST API
 ├── frontend/         # Streamlit UI
 ├── database/         # PostgreSQL setup
-├── etl/             # Data pipelines
-├── airflow/         # Orchestration
-├── airbyte/         # Data integration
-├── data/            # CSV files
-├── credentials/     # API credentials
-└── tests/           # Test suite
+├── etl/              # Data pipelines
+├── airflow/          # Orchestration
+├── airbyte/          # Data integration
+├── data/             # CSV files
+├── credentials/      # API credentials
+└── tests/            # Test suite
 ```
 
 ### Useful Commands
