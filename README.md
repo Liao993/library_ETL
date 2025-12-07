@@ -69,13 +69,15 @@ You should see `library_backend`, `library_frontend`, `library_postgres`, `airfl
 ### Project Structure
 ```
 library_system/
-├── backend/          # FastAPI application (Python 3.11)
-├── frontend/         # Streamlit user interface
-├── database/         # SQL init scripts & migrations
-├── etl/             # Data processing scripts & Great Expectations
-├── airflow/         # DAGs for orchestration
-├── data/            # Shared directory for data files
-└── docker-compose.yml
+├── backend/          # FastAPI REST API
+├── frontend/         # Streamlit UI
+├── database/         # PostgreSQL setup
+├── etl/             # Data pipelines
+├── airflow/         # Orchestration
+├── airbyte/         # Data integration
+├── data/            # CSV files
+├── credentials/     # API credentials
+└── tests/           # Test suite
 ```
 
 ### Useful Commands
