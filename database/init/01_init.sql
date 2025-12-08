@@ -19,33 +19,24 @@ CREATE TABLE IF NOT EXISTS teachers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create categories table
-CREATE TABLE IF NOT EXISTS categories (
-    category_id SERIAL PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL,
-    category_label VARCHAR(50) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 -- Create locations table
 CREATE TABLE IF NOT EXISTS locations (
     location_id SERIAL PRIMARY KEY,
-    category_label VARCHAR(50),
     location_name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_label) REFERENCES categories(category_label) ON DELETE SET NULL
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create books table
 CREATE TABLE IF NOT EXISTS books (
     book_id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    category_id INTEGER,
+    book_category VARCHAR(50) NOT NULL,
+    book_category_label VARCHAR(50) NOT NULL,
     storage_location_id INTEGER,
     status VARCHAR(20) DEFAULT 'Available',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
     FOREIGN KEY (storage_location_id) REFERENCES locations(location_id) ON DELETE SET NULL,
     CHECK (status IN ('Available', 'On Loan', 'Lost', 'Archived'))
 );
@@ -66,7 +57,6 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_books_status ON books(status);
-CREATE INDEX IF NOT EXISTS idx_books_category ON books(category_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_book ON transactions(book_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_teacher ON transactions(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date);
