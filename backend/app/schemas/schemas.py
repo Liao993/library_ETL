@@ -60,42 +60,12 @@ class TeacherResponse(TeacherBase):
 
 
 # ============================================================================
-# Category Schemas
-# ============================================================================
-
-class CategoryBase(BaseModel):
-    """Base category schema."""
-    category_name: str = Field(..., min_length=1, max_length=100)
-    category_label: str = Field(..., min_length=1, max_length=50)
-
-
-class CategoryCreate(CategoryBase):
-    """Schema for creating a new category."""
-    pass
-
-
-class CategoryUpdate(BaseModel):
-    """Schema for updating a category."""
-    category_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    category_label: Optional[str] = Field(None, min_length=1, max_length=50)
-
-
-class CategoryResponse(CategoryBase):
-    """Schema for category response."""
-    category_id: int
-    created_at: datetime
-    
-    model_config = ConfigDict(from_attributes=True)
-
-
-# ============================================================================
 # Location Schemas
 # ============================================================================
 
 class LocationBase(BaseModel):
     """Base location schema."""
     location_name: str = Field(..., min_length=1, max_length=100)
-    category_label: Optional[str] = Field(None, max_length=50)
 
 
 class LocationCreate(LocationBase):
@@ -106,7 +76,6 @@ class LocationCreate(LocationBase):
 class LocationUpdate(BaseModel):
     """Schema for updating a location."""
     location_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    category_label: Optional[str] = Field(None, max_length=50)
 
 
 class LocationResponse(LocationBase):
@@ -124,7 +93,8 @@ class LocationResponse(LocationBase):
 class BookBase(BaseModel):
     """Base book schema."""
     name: str = Field(..., min_length=1, max_length=255)
-    category_id: Optional[int] = None
+    book_category: str = Field(..., min_length=1, max_length=50)
+    book_category_label: str = Field(..., min_length=1, max_length=50)
     storage_location_id: Optional[int] = None
 
 
@@ -136,7 +106,8 @@ class BookCreate(BookBase):
 class BookUpdate(BaseModel):
     """Schema for updating a book."""
     name: Optional[str] = Field(None, min_length=1, max_length=255)
-    category_id: Optional[int] = None
+    book_category: Optional[str] = Field(None, min_length=1, max_length=50)
+    book_category_label: Optional[str] = Field(None, min_length=1, max_length=50)
     storage_location_id: Optional[int] = None
     status: Optional[Literal["Available", "On Loan", "Lost", "Archived"]] = None
 
@@ -153,7 +124,6 @@ class BookResponse(BookBase):
 
 class BookDetailResponse(BookResponse):
     """Schema for detailed book response with relationships."""
-    category: Optional[CategoryResponse] = None
     storage_location: Optional[LocationResponse] = None
     
     model_config = ConfigDict(from_attributes=True)

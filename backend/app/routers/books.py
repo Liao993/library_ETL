@@ -18,7 +18,7 @@ async def get_books(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     status: Optional[str] = None,
-    category_id: Optional[int] = None,
+    book_category: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -29,7 +29,7 @@ async def get_books(
         skip: Number of records to skip (pagination)
         limit: Maximum number of records to return
         status: Filter by book status
-        category_id: Filter by category ID
+        book_category: Filter by book category
         db: Database session
         current_user: Current authenticated user
         
@@ -41,8 +41,8 @@ async def get_books(
     if status:
         query = query.filter(Book.status == status)
     
-    if category_id:
-        query = query.filter(Book.category_id == category_id)
+    if book_category:
+        query = query.filter(Book.book_category == book_category)
     
     books = query.offset(skip).limit(limit).all()
     return books

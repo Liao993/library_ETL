@@ -35,31 +35,16 @@ class Teacher(Base):
     transactions = relationship("Transaction", back_populates="teacher")
 
 
-class Category(Base):
-    """Category model for book groupings."""
-    __tablename__ = "categories"
-    
-    category_id = Column(Integer, primary_key=True, index=True)
-    category_name = Column(String(100), nullable=False)
-    category_label = Column(String(50), unique=True, nullable=False, index=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relationships
-    books = relationship("Book", back_populates="category")
-    locations = relationship("Location", back_populates="category")
-
 
 class Location(Base):
     """Location model for storage locations."""
     __tablename__ = "locations"
     
     location_id = Column(Integer, primary_key=True, index=True)
-    category_label = Column(String(50), ForeignKey("categories.category_label", ondelete="SET NULL"))
     location_name = Column(String(100), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    category = relationship("Category", back_populates="locations")
     books = relationship("Book", back_populates="storage_location")
 
 
@@ -69,14 +54,14 @@ class Book(Base):
     
     book_id = Column(String(50), primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
-    category_id = Column(Integer, ForeignKey("categories.category_id", ondelete="SET NULL"))
+    book_category = Column(String(50), nullable=False)
+    book_category_label = Column(String(50), nullable=False)
     storage_location_id = Column(Integer, ForeignKey("locations.location_id", ondelete="SET NULL"))
     status = Column(String(20), default="Available", nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
-    category = relationship("Category", back_populates="books")
     storage_location = relationship("Location", back_populates="books")
     transactions = relationship("Transaction", back_populates="book")
     
