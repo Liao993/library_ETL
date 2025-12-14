@@ -1,63 +1,52 @@
+# validation.py
 
 import pandas as pd
-import logging
-import great_expectations as gx
+from great_expectations.dataset import PandasDataset
+from great_expectations.core.batch import Batch
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-def validate_data(df: pd.DataFrame) -> bool:
+def run_validation(df: pd.DataFrame) -> None:
     """
-    Validate dataframe using Great Expectations.
-    Returns True if valid, raises Exception if invalid.
+    Validates the raw DataFrame using Great Expectations against schema rules.
+    Raises an error if validation fails.
     """
-    logger.info("Validating data with Great Expectations...")
+    print("Starting data validation...")
     
-    # Convert pandas DF to GE DF
-    # We can use an ephemeral context or just wrap the dataframe
-    ge_df = gx.from_pandas(df)
-    
-    # Define expectations
-    
-    # 1. Critical columns must exist and not be null
-    critical_cols = ['book_category', 'book_category_label', 'name', 'location_name']
-    for col in critical_cols:
-        # Expect column to exist
-        res = ge_df.expect_column_to_exist(col)
-        if not res["success"]:
-            raise ValueError(f"Column {col} missing: {res}")
-            
-        # Expect values to not be null
-        res = ge_df.expect_column_values_to_not_be_null(col)
-        if not res["success"]:
-             # If strict, raise error.
-             logger.warning(f"Column {col} contains null values. This might cause DB errors.")
-             # For this strict requirement, let's fail
-             raise ValueError(f"Column {col} has null values: {res['result']}")
+    # 1. Create a Great Expectations Dataset object
+    # We use a simple PandasDataset here for easy integration
+    ge_df = PandasDataset(df)
 
-    # 2. Data Types
-    # Expect book_category to be string
-    ge_df.expect_column_values_to_be_of_type("book_category", "object")
-    ge_df.expect_column_values_to_be_of_type("name", "object")
+    # 2. Define Expectations
+    # --- Checks based on the database schema constraints ---
+
+    # Core columns should exist
+    ge_df.expect_column_to_exist(column="category")
+    ge_df.expect_column_to_exist(column="category_label")
+    ge_df.expect_column_to_exist(column="book_name")
+    ge_df.expect_column_to_exist(column="location")
+
+    # Key columns for books/locations should not be null/empty
+    ge_df.expect_column_values_to_not_be_null(column="book_name")
+    ge_df.expect_column_values_to_not_be_null(column="location")
+    ge_df.expect_column_values_to_not_be_null(column="category")
+
+   
     
-    # Expect status to be valid
-    allowed_statuses = ['Available', 'On Loan', 'Lost', 'Archived']
-    ge_df.expect_column_values_to_be_in_set("status", allowed_statuses)
-    
-    # 3. Custom: book_id should be unique in this batch (it is generated mechanically, so it should be, but good to check)
-    ge_df.expect_column_values_to_be_unique("book_id")
-    
-    # Validate
+    # Text columns should not be excessively long (e.g., prevent overflow in VARCHAR fields)
+    ge_df.expect_column_value_lengths_to_be_between(column="category", max_value=50)
+    ge_df.expect_column_value_lengths_to_be_between(column="category_label", max_value=50)
+    ge_df.expect_column_value_lengths_to_be_between(column="book_name", max_value=255)
+    ge_df.expect_column_value_lengths_to_be_between(column="location", max_value=100)
+
+    # 3. Run Validation and Check Results
     validation_result = ge_df.validate()
-    
+
     if not validation_result["success"]:
-        logger.error("Great Expectations Validation Failed!")
-        # Log failure details
-        for res in validation_result["results"]:
-            if not res["success"]:
-                logger.error(f"Failed expectation: {res['expectation_config']['expectation_type']} on {res['expectation_config']['kwargs']}")
-        raise ValueError("Data Validation Failed via Great Expectations")
-        
-    logger.info("Data Validation Passed.")
-    return True
+        print("--- ❌ Data Validation Failed! ---")
+        # Print a summary or detailed results
+        for result in validation_result["results"]:
+            if not result["success"]:
+                print(f"Failed Expectation: {result['expectation_config'].get('expectation_type', 'Unknown')}")
+                # Optional: print specific details of the failure
+        raise ValueError("Data quality check failed. Please review the raw data.")
+    
+    print("--- ✅ Data Validation Succeeded! ---")

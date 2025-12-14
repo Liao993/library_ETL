@@ -1,19 +1,17 @@
-import sys
-import os
-import logging
-# Add parent directory (etl) to sys.path so we can import 'csv_loader' as a package
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
 
+
+import os
+import sys
+import logging
 from csv_loader.extract import extract_data
 from csv_loader.transform import transform_data
-from csv_loader.load import load_locations, load_books
-from csv_loader.validation import validate_data
+from csv_loader.load import run_load_pipeline
+from csv_loader.validation import run_validation
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 
 # Get the directory where this script is located
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,18 +26,15 @@ def run_pipeline(file_path: str):
     df = extract_data(file_path)
     logger.info(f"Extracted {len(df)} rows.")
     
-    # 2. Transform
-    df_transformed = transform_data(df)
-    logger.info("Transformation complete.")
     
-    # 3. Validate
-    validate_data(df_transformed)
+    # 2. Validate
+    run_validation(df)
+    
+    # 3. Transform
+    books_df, locations_df = transform_data(df)
     
     # 4. Load Locations (Dimension)
-    load_locations(df_transformed)
-    
-    # 5. Load Books (Fact)
-    load_books(df_transformed)
+    run_load_pipeline(books_df, locations_df)
     
     logger.info("Pipeline finished successfully.")
 

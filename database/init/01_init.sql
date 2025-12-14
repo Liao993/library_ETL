@@ -55,29 +55,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     CHECK (action IN ('borrow', 'return'))
 );
 
--- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_books_status ON books(status);
-CREATE INDEX IF NOT EXISTS idx_transactions_book ON transactions(book_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_teacher ON transactions(teacher_id);
-CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date);
-
--- Create a function to update the updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create trigger for books table
-CREATE TRIGGER update_books_updated_at BEFORE UPDATE ON books
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- make the passwrod is in the .env file
-INSERT INTO users (username, password_hash, role) 
-VALUES ('admin', '$2b$12$mWxEhTbVKcc47xuvPRIKyezqvgBtGXOMzpCuefO43T7.TYmUjxMuS', 'admin')
-ON CONFLICT (username) DO NOTHING;
 
 
 

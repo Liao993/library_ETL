@@ -11,7 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
     ports:
-      - "5433:5433"
+      - "5433:5432" # HOST_PORT:CONTAINER_PORT
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
       interval: 10s
@@ -27,7 +27,7 @@ services:
       dockerfile: Dockerfile
     container_name: library_backend
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -50,7 +50,7 @@ services:
     container_name: library_frontend
     environment:
       - API_BASE_URL=${API_BASE_URL}
-      - STREAMLIT_SERVER_PORT=${STREAMLIT_SERVER_PORT}
+      - STREAMLIT_SERVER_PORT=8502
       - STREAMLIT_SERVER_ADDRESS=${STREAMLIT_SERVER_ADDRESS}
     volumes:
       - ./frontend:/app
@@ -68,7 +68,7 @@ services:
       dockerfile: Dockerfile
     container_name: library_etl
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - GE_DATA_CONTEXT_ROOT_DIR=${GE_DATA_CONTEXT_ROOT_DIR}
     volumes:
       - ./etl:/app
@@ -110,7 +110,7 @@ services:
       - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/plugins:/opt/airflow/plugins

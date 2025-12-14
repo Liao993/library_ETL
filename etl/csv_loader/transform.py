@@ -1,54 +1,54 @@
+# transform.py
 
 import pandas as pd
-import logging
+import uuid
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+def generate_book_id():
+    """Generates a unique, short, and URL-safe ID."""
+    # Using a truncated UUID for a unique VARCHAR(50) ID
+    return str(uuid.uuid4()).replace('-', '')[:32]
 
-def transform_data(df: pd.DataFrame) -> pd.DataFrame:
+def transform_data(raw_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Transform the dataframe to match database schema.
-    """
-    logger.info("Transforming data...")
-    
-    # Rename columns to match our internal logic
-    # Category -> book_category
-    # category_label -> book_category_label (and book_id)
-    # book_name -> name
-    # location -> location_name
-    
-    # Ensure columns exist before renaming to avoid errors
-    expected_map = {
-        'Category': 'book_category',
-        'category_label': 'book_category_label',
-        'book_name': 'name',
-        'location': 'location_name'
-    }
-    
-    # Filter map to only include keys present in df
-    rename_map = {k: v for k, v in expected_map.items() if k in df.columns}
-    
-    df_transformed = df.rename(columns=rename_map)
-    
-    # Strip whitespace from all object columns
-    for col in df_transformed.columns:
-        if df_transformed[col].dtype == 'object':
-            df_transformed[col] = df_transformed[col].str.strip()
+    Performs normalization and transformation steps on the raw DataFrame.
 
-    # Generate sequential book_id (01, 02...)
-    # This assumes the input DF respects the order we want to assign IDs.
-    if 'book_id' not in df_transformed.columns:
-         df_transformed['book_id'] = (df_transformed.index + 1).astype(str).str.zfill(2)
-         
-    # Derive 'status' based on location
-    # Rule: If location is '活動室', it is 'Available', otherwise it implies it is compiled/borrowed/unavailable
-    if 'location_name' in df_transformed.columns:
-        df_transformed['status'] = df_transformed['location_name'].apply(
-            lambda x: 'Available' if x == '活動室' else 'On Loan'
-        )
-    else:
-        # Default fallback
-        df_transformed['status'] = 'Available'
+    Returns:
+        A tuple: (books_df, locations_df)
+    """
+    print("Starting data transformation...")
     
-    return df_transformed
+    # 1. Create the Locations DataFrame (Normalization Step 1)
+    # Extract unique locations and assign a temporary ID for mapping.
+    # We will let the database assign the final location_id (SERIAL PRIMARY KEY).
+    # This DF is ready for insertion into the 'locations' table.
+    locations_df = raw_df[['location']].drop_duplicates().reset_index(drop=True)
+    locations_df.rename(columns={'location': 'location_name'}, inplace=True)
+    # The 'location_name' is used as the lookup key during the load process.
+    
+    # 2. Prepare the Books DataFrame (Normalization Step 2)
+    books_df = raw_df[['category', 'category_label', 'book_name', 'location']].copy()
+    
+    # Add a unique book_id
+    books_df['book_id'] = [generate_book_id() for _ in range(len(books_df))]
+    
+    # Add default status column
+    # The database has a default, but it's often cleaner to explicitly set it here
+    # to maintain consistency if the database schema ever changes.
+    books_df['status'] = 'Available'
+    
+    # IMPORTANT: The 'storage_location_id' column in books_df needs the
+    # actual location_id *after* the locations have been loaded into the DB.
+    # For now, we keep the original 'location' name to be used as a foreign key
+    # lookup during the loading phase. We will drop this column and replace it
+    # with 'storage_location_id' in load.py.
+    
+    # Final Columns for Books table: book_id, name, book_category, book_category_label,
+    # storage_location_id (will be added later), status
+    books_df.rename(columns={'book_name': 'name', 
+                             'category': 'book_category', 
+                             'category_label': 'book_category_label'}, 
+                    inplace=True)
+    
+    print("Transformation complete.")
+    return books_df, locations_df
+

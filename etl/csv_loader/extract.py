@@ -16,16 +16,6 @@ def extract_data(file_path: str) -> pd.DataFrame:
         raise FileNotFoundError(f"File {file_path} not found")
         
     data = pd.read_csv(file_path)
-    print(data.head())
+    # Normalize column names to lowercase
+    data.columns = [c.lower() for c in data.columns]
     return data
-
-if __name__ == "__main__":
-    # logical path to the data file assuming standard project structure
-    # script is in etl/csv_loader/extract.py -> data is in data/book.csv
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    file_path = os.path.join(base_dir, 'data', 'book.csv')
-    
-    if os.path.exists(file_path):
-        extract_data(file_path)
-    else:
-        print(f"File not found at {file_path}. Please check the path.")

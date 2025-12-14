@@ -1,125 +1,115 @@
 
 import pandas as pd
-import sqlalchemy
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert
-import logging
-from typing import Dict, List, Optional
-import sys
-import os
-
-# Add parent directory to path to import database module
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
-
+import psycopg2
+from psycopg2 import sql
+from typing import Dict
 from database import get_db_connection
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-def load_locations(df: pd.DataFrame):
+def load_locations(conn, locations_df: pd.DataFrame) -> Dict[str, int]:
     """
-    Ensure locations from the DataFrame exist in the database.
-    This function is idempotent; it only inserts new locations.
+    Loads unique locations into the locations table and returns a mapping
+    of location_name -> location_id.
     """
-    logger.info("Loading locations...")
-    
-    if 'location_name' not in df.columns:
-        logger.warning("No 'location_name' column found. Skipping location loading.")
-        return
+    print("Loading unique locations...")
+    cursor = conn.cursor()
+    location_map = {}
 
-    # Extract unique locations
-    unique_locations = df['location_name'].unique().tolist()
-    # Clean out any potential NaNs
-    unique_locations = [x for x in unique_locations if pd.notna(x) and x != '']
-    
-    if not unique_locations:
-        logger.info("No locations found to load.")
-        return
+    for index, row in locations_df.iterrows():
+        location_name = row['location_name']
+        
+        # SQL to insert location and return the generated location_id
+        insert_query = sql.SQL("""
+            INSERT INTO locations (location_name)
+            VALUES (%s)
+            ON CONFLICT (location_name) DO NOTHING  -- Assuming you might add a UNIQUE constraint later
+            RETURNING location_id;
+        """)
+        
+        # We need a SELECT if the insert was ignored by ON CONFLICT
+        select_query = sql.SQL("""
+            SELECT location_id FROM locations WHERE location_name = %s;
+        """)
 
-    engine = get_db_connection()
-    with engine.begin() as conn:
-        # 1. Get existing locations to minimize inserts
         try:
-            existing = pd.read_sql("SELECT location_name FROM locations", conn)
-            existing_set = set(existing['location_name'])
-        except Exception as e:
-            logger.warning(f"Could not read existing locations, assuming empty: {e}")
-            existing_set = set()
+            cursor.execute(insert_query, (location_name,))
+            # Fetch the new ID if the insert was successful
+            if cursor.rowcount > 0:
+                location_id = cursor.fetchone()[0]
+            else:
+                # If ON CONFLICT was hit (location already exists), select the existing ID
+                cursor.execute(select_query, (location_name,))
+                location_id = cursor.fetchone()[0]
 
-        # 2. Identify new locations
-        new_locations = set(unique_locations) - existing_set
-        
-        if new_locations:
-            logger.info(f"Inserting {len(new_locations)} new locations")
-            for loc in new_locations:
-                conn.execute(text("INSERT INTO locations (location_name) VALUES (:loc)"), {"loc": loc})
-        else:
-            logger.info("No new locations to insert.")
+            location_map[location_name] = location_id
+        except psycopg2.Error as e:
+            conn.rollback()
+            print(f"Error loading location '{location_name}': {e}")
+            raise
 
-def load_books(df: pd.DataFrame):
+    conn.commit()
+    print(f"Loaded {len(location_map)} unique locations.")
+    return location_map
+
+def load_books(conn, books_df: pd.DataFrame, location_map: Dict[str, int]) -> None:
     """
-    Load books into database.
-    Maps location names to IDs and performs upsert on books.
+    Loads books into the books table using the location_name to storage_location_id map.
     """
-    logger.info("Loading books...")
+    print("Loading books...")
+    cursor = conn.cursor()
     
-    engine = get_db_connection()
+    # 1. Map the 'location' name in books_df to the actual 'storage_location_id'
+    books_df['storage_location_id'] = books_df['location'].map(location_map)
     
-    with engine.begin() as conn:
-        # 1. Map Locations (if applicable)
-        if 'location_name' in df.columns:
-            logger.info("Mapping locations to IDs...")
-            try:
-                existing = pd.read_sql("SELECT location_id, location_name FROM locations", conn)
-                location_map = dict(zip(existing['location_name'], existing['location_id']))
-                
-                # Map location names to IDs
-                df['storage_location_id'] = df['location_name'].map(location_map)
-            except Exception as e:
-                logger.error(f"Failed to fetch locations for mapping: {e}")
-                # We can't safely proceed if we can't map locations that are expected
-                raise
-        else:
-             logger.warning("No 'location_name' column, skipping location linking.")
-             df['storage_location_id'] = None
-        
-        # 2. Insert Books
-        # Prepare records
-        cols_to_insert = ['book_id', 'name', 'book_category', 'book_category_label', 'storage_location_id', 'status']
-        valid_cols = [c for c in cols_to_insert if c in df.columns]
-        
-        books_to_insert = df[valid_cols].to_dict(orient='records')
-        
-        if not books_to_insert:
-            logger.warning("No books to insert.")
-            return
+    # Drop the temporary 'location' column
+    books_df.drop(columns=['location'], inplace=True)
+    
+    # 2. Prepare for bulk insertion
+    # Column names in the books table
+    columns = ['book_id', 'name', 'book_category', 'book_category_label', 'storage_location_id', 'status']
+    
+    # Values to be inserted
+    records = books_df[columns].values.tolist()
+    
+    # Prepare the INSERT statement
+    insert_query = sql.SQL("""
+        INSERT INTO books ({}) VALUES ({});
+    """).format(
+        sql.SQL(', ').join(map(sql.Identifier, columns)),
+        sql.SQL(', ').join([sql.Placeholder() for _ in columns])
+    )
 
-        # Reflect table to use SQLAlchemy Core properly
-        meta = sqlalchemy.MetaData()
-        try:
-            books_table = sqlalchemy.Table('books', meta, autoload_with=conn)
-        except sqlalchemy.exc.NoSuchTableError:
-             logger.error("Table 'books' does not exist in the database.")
-             raise
+    try:
+        # Execute batch insertion (best practice for performance)
+        cursor.executemany(insert_query, records)
+        conn.commit()
+        print(f"Loaded {len(records)} books.")
+    except psycopg2.Error as e:
+        conn.rollback()
+        print(f"Error loading books: {e}")
+        raise
 
-        stmt = insert(books_table).values(books_to_insert)
+    finally:
+        cursor.close()
+
+def run_load_pipeline(books_df: pd.DataFrame, locations_df: pd.DataFrame) -> None:
+    """Main function to orchestrate the database loading."""
+    conn = None
+    try:
+        conn = get_db_connection()
         
-        # Upsert Logic:
-        # On conflict (book_id), update everything
-        do_update_stmt = stmt.on_conflict_do_update(
-            index_elements=['book_id'],
-            set_={
-                'name': stmt.excluded.name,
-                'book_category': stmt.excluded.book_category,
-                'book_category_label': stmt.excluded.book_category_label,
-                'storage_location_id': stmt.excluded.storage_location_id,
-                'status': stmt.excluded.status,
-                'updated_at': text("CURRENT_TIMESTAMP")
-            }
-        )
+        # STEP 1: Load Locations and get the mapping
+        location_map = load_locations(conn, locations_df)
         
-        result = conn.execute(do_update_stmt)
-        logger.info(f"Loaded {result.rowcount} books (inserted/updated).")
+        # STEP 2: Load Books using the mapping
+        load_books(conn, books_df, location_map)
+        
+        print("\n--- ✅ Database Load Successful! ---")
+        
+    except Exception as e:
+        print(f"Pipeline failed: {e}")
+        if conn:
+            conn.rollback() # Ensure transaction is rolled back on error
+            
+    finally:
+        if conn:
+            conn.close()
