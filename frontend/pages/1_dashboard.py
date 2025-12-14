@@ -9,7 +9,7 @@ if 'authenticated' not in st.session_state or not st.session_state.authenticated
     st.warning("Please login first.")
     st.stop()
 
-st.title("📊 Library Dashboard")
+st.title("📊圖書管理系統")
 
 # Fetch data
 with st.spinner("Loading data..."):
@@ -25,77 +25,127 @@ with st.spinner("Loading data..."):
 # Display Metrics from Backend
 if stats:
     col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("Total Books", stats.get('total_books', 0))
-    col2.metric("Available", stats.get('available_books', 0))
-    col3.metric("Not Available", stats.get('not_available_books', 0))
-    col4.metric("Donation", stats.get('donation_books', 0))
-    col5.metric("Self Bought", stats.get('self_bought_books', 0))
+    col1.metric("總書籍", stats.get('total_books', 0))
+    col2.metric("可借閱", stats.get('available_books', 0))
+    col3.metric("不可借閱", stats.get('not_available_books', 0))
+    col4.metric("捐贈", stats.get('donation_books', 0))
+    col5.metric("自購", stats.get('self_bought_books', 0))
    
     
 
-if books:
+
+
     df_books = pd.DataFrame(books)
     
-    # Charts
-    st.subheader("Book Status Distribution")
-    if not df_books.empty:
-        status_counts = df_books['status'].value_counts().reset_index()
-        status_counts.columns = ['Status', 'Count']
-        fig = px.pie(status_counts, values='Count', names='Status', title='Book Status')
-        st.plotly_chart(fig, use_container_width=True)
+    # Extract location name from nested storage_location object
+    df_books['location_name'] = df_books['storage_location'].apply(
+        lambda x: x.get('location_name', '未設定') if isinstance(x, dict) and x else '未設定'
+    )
     
     # Inventory Table
-    st.subheader("Book Inventory")
+    st.subheader("進階搜尋")
     
     # Filters
-    col1, col2 = st.columns(2)
-    with col1:
-        status_filter = st.multiselect("Filter by Status", options=df_books['status'].unique(), default=df_books['status'].unique())
+    col1, col2, col3 = st.columns([2, 2, 1])
     
-    filtered_df = df_books[df_books['status'].isin(status_filter)]
+    with col1:
+        # Get unique statuses and sort them
+        all_statuses = sorted(df_books['status'].unique().tolist())
+        
+        # Select All checkbox for status
+        select_all_status = st.checkbox("全選狀態", value=True, key="select_all_status")
+        
+        if select_all_status:
+            status_filter = st.multiselect(
+                "狀態", 
+                options=all_statuses, 
+                default=all_statuses,
+                key="status_multiselect"
+            )
+        else:
+            status_filter = st.multiselect(
+                "狀態", 
+                options=all_statuses, 
+                default=[],
+                key="status_multiselect_2"
+            )
+    
+    with col2:
+        # Get unique locations and sort them
+        all_locations = sorted(df_books['location_name'].unique().tolist())
+        
+        # Select All checkbox for location
+        select_all_location = st.checkbox("全選位置", value=True, key="select_all_location")
+        
+        if select_all_location:
+            location_filter = st.multiselect(
+                "位置", 
+                options=all_locations, 
+                default=all_locations,
+                key="location_multiselect"
+            )
+        else:
+            location_filter = st.multiselect(
+                "位置", 
+                options=all_locations, 
+                default=[],
+                key="location_multiselect_2"
+            )
+    
+    # Apply filters
+    filtered_df = df_books[
+        (df_books['status'].isin(status_filter)) & 
+        (df_books['location_name'].isin(location_filter))
+    ]
+    
+    # Sort by book_category_label and then location_name
+    filtered_df = filtered_df.sort_values(by=['location_name', 'book_category_label'])
+    
+    # Select and reorder columns for display
+    display_columns = ['book_category', 'book_category_label', 'name', 'status', 'location_name']
+    display_df = filtered_df[display_columns].copy()
     
     st.dataframe(
-        filtered_df,
+        display_df,
         column_config={
-            "book_id": "Book ID",
-            "name": "Title",
-            "status": "Status",
-            "category_id": "Category ID",
-            "storage_location_id": "Location ID",
-            "updated_at": "Last Updated"
+            "book_category": "類別",
+            "book_category_label": "類別標籤",
+            "name": "書名",
+            "status": "狀態",
+            "location_name": "位置"
         },
         use_container_width=True,
         hide_index=True
     )
     
     # CSV Export
-    csv = filtered_df.to_csv(index=False).encode('utf-8')
+    csv = display_df.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Download Inventory CSV",
+        label="📥 下載 CSV",
         data=csv,
         file_name="book_inventory.csv",
         mime="text/csv",
     )
 
 else:
-    st.info("No books found in the database. Add some books via the Admin panel or ETL process.")
+    st.info("資料庫中沒有找到書籍。請透過管理面板或 ETL 流程新增書籍。")
 
 # Recent Transactions
-st.subheader("Recent Transactions")
+st.subheader("借閱紀錄")
 if transactions:
     df_trans = pd.DataFrame(transactions)
     st.dataframe(
         df_trans,
         column_config={
-            "transaction_id": "ID",
-            "book_id": "Book ID",
-            "teacher_id": "Teacher ID",
-            "action": "Action",
-            "transaction_date": "Date",
-            "timestamp": "Timestamp"
+            "transaction_id": "交易ID",
+            "book_id": "書籍ID",
+            "teacher_id": "教師ID",
+            "action": "動作",
+            "transaction_date": "日期",
+            "timestamp": "時間戳記"
         },
         use_container_width=True,
         hide_index=True
     )
 else:
-    st.info("No recent transactions.")
+    st.info("目前沒有借閱紀錄")
