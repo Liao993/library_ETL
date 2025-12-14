@@ -45,6 +45,12 @@ def run_pipeline(file_path: str):
 
 if __name__ == "__main__":
     file_path = sys.argv[1] if len(sys.argv) > 1 else default_path
+    print(f"DEBUG: Calculated project_root: {project_root}")
+    print(f"DEBUG: Target file_path: {file_path}")
+    if os.path.exists(file_path):
+        print("DEBUG: File exists.")
+    else:
+        print("DEBUG: File DOES NOT exist.")
     
     try:
         run_pipeline(file_path)

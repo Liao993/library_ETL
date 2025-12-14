@@ -41,6 +41,10 @@ def validate_data(df: pd.DataFrame) -> bool:
     ge_df.expect_column_values_to_be_of_type("book_category", "object")
     ge_df.expect_column_values_to_be_of_type("name", "object")
     
+    # Expect status to be valid
+    allowed_statuses = ['Available', 'On Loan', 'Lost', 'Archived']
+    ge_df.expect_column_values_to_be_in_set("status", allowed_statuses)
+    
     # 3. Custom: book_id should be unique in this batch (it is generated mechanically, so it should be, but good to check)
     ge_df.expect_column_values_to_be_unique("book_id")
     

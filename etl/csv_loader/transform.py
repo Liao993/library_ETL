@@ -40,5 +40,15 @@ def transform_data(df: pd.DataFrame) -> pd.DataFrame:
     # This assumes the input DF respects the order we want to assign IDs.
     if 'book_id' not in df_transformed.columns:
          df_transformed['book_id'] = (df_transformed.index + 1).astype(str).str.zfill(2)
+         
+    # Derive 'status' based on location
+    # Rule: If location is '活動室', it is 'Available', otherwise it implies it is compiled/borrowed/unavailable
+    if 'location_name' in df_transformed.columns:
+        df_transformed['status'] = df_transformed['location_name'].apply(
+            lambda x: 'Available' if x == '活動室' else 'On Loan'
+        )
+    else:
+        # Default fallback
+        df_transformed['status'] = 'Available'
     
     return df_transformed

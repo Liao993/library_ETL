@@ -88,7 +88,7 @@ def load_books(df: pd.DataFrame):
         
         # 2. Insert Books
         # Prepare records
-        cols_to_insert = ['book_id', 'name', 'book_category', 'book_category_label', 'storage_location_id']
+        cols_to_insert = ['book_id', 'name', 'book_category', 'book_category_label', 'storage_location_id', 'status']
         valid_cols = [c for c in cols_to_insert if c in df.columns]
         
         books_to_insert = df[valid_cols].to_dict(orient='records')
@@ -116,6 +116,7 @@ def load_books(df: pd.DataFrame):
                 'book_category': stmt.excluded.book_category,
                 'book_category_label': stmt.excluded.book_category_label,
                 'storage_location_id': stmt.excluded.storage_location_id,
+                'status': stmt.excluded.status,
                 'updated_at': text("CURRENT_TIMESTAMP")
             }
         )
