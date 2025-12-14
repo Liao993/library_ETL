@@ -67,7 +67,7 @@ class Book(Base):
     
     __table_args__ = (
         CheckConstraint(
-            "status IN ('可借閱', '不可借閱', '遺失', '非管理中')", 
+            "status IN ('可借閱', '借閱中', '學期中放教室', '遺失', '非管理中')", 
             name="check_book_status"
         ),
     )

@@ -109,7 +109,7 @@ class BookUpdate(BaseModel):
     book_category: Optional[str] = Field(None, min_length=1, max_length=50)
     book_category_label: Optional[str] = Field(None, min_length=1, max_length=50)
     storage_location_id: Optional[int] = None
-    status: Optional[Literal["可借閱", "不可借閱", "遺失", "非管理中"]] = None
+    status: Optional[Literal["可借閱", "借閱中", "學期中放教室", "遺失", "非管理中"]] = None
 
 
 class BookResponse(BookBase):
@@ -133,7 +133,7 @@ class BookStatsResponse(BaseModel):
     """Schema for book statistics."""
     total_books: int
     available_books: int
-    not_available_books: int
+    on_loan_books: int
     donation_books: int
     self_bought_books: int
     on_behalf_books: int

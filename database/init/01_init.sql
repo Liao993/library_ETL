@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS books (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (storage_location_id) REFERENCES locations(location_id) ON DELETE SET NULL,
-    CHECK (status IN ('可借閱', '不可借閱', '遺失', '非管理中'))
+    CHECK (status IN ('可借閱', '借閱中', '學期中放教室','遺失', '非管理中'))
 );
 
 -- Create transactions table

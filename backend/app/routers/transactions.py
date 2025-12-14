@@ -132,10 +132,10 @@ async def create_transaction(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Book is currently {book.status} and cannot be borrowed"
             )
-        new_status = "不可借閱"
+        new_status = "借閱中"
     
     elif transaction_data.action == "歸還":
-        if book.status != "不可借閱":
+        if book.status != "借閱中":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Book is currently {book.status} and cannot be returned"

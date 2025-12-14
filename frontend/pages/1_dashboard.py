@@ -27,7 +27,7 @@ if stats:
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("總書籍", stats.get('total_books', 0))
     col2.metric("可借閱", stats.get('available_books', 0))
-    col3.metric("不可借閱", stats.get('not_available_books', 0))
+    col3.metric("借閱中", stats.get('on_loan_books', 0))
     col4.metric("捐贈", stats.get('donation_books', 0))
     col5.metric("自購", stats.get('self_bought_books', 0))
    

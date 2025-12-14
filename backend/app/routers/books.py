@@ -27,7 +27,7 @@ async def get_book_stats(
     """
     total_books = db.query(func.count(Book.book_id)).scalar()
     available_books = db.query(func.count(Book.book_id)).filter(Book.status == "可借閱").scalar()
-    not_available_books = db.query(func.count(Book.book_id)).filter(Book.status == "不可借閱").scalar()
+    on_loan_books = db.query(func.count(Book.book_id)).filter(Book.status == "借閱中").scalar()
     donation_books = db.query(func.count(Book.book_id)).filter(Book.book_category == "捐贈").scalar()
     self_bought_books = db.query(func.count(Book.book_id)).filter(Book.book_category == "自購").scalar()
     on_behalf_books = db.query(func.count(Book.book_id)).filter(Book.book_category == "代管").scalar()
@@ -35,7 +35,7 @@ async def get_book_stats(
     return {
         "total_books": total_books,
         "available_books": available_books,
-        "not_available_books": not_available_books,
+        "on_loan_books": on_loan_books,
         "donation_books": donation_books,
         "self_bought_books": self_bought_books,
         "on_behalf_books": on_behalf_books,
