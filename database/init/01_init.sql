@@ -34,11 +34,11 @@ CREATE TABLE IF NOT EXISTS books (
     book_category VARCHAR(50) NOT NULL,
     book_category_label VARCHAR(50) NOT NULL,
     storage_location_id INTEGER,
-    status VARCHAR(20) DEFAULT 'Available',
+    status VARCHAR(20) DEFAULT '可借閱',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (storage_location_id) REFERENCES locations(location_id) ON DELETE SET NULL,
-    CHECK (status IN ('Available', 'On Loan', 'Lost', 'Archived'))
+    CHECK (status IN ('可借閱', '不可借閱', '遺失', '非管理中'))
 );
 
 -- Create transactions table
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     notes TEXT,
     FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE,
     FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id) ON DELETE CASCADE,
-    CHECK (action IN ('borrow', 'return'))
+    CHECK (action IN ('借閱', '歸還'))
 );
 
 

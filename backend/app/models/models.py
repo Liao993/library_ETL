@@ -57,7 +57,7 @@ class Book(Base):
     book_category = Column(String(50), nullable=False)
     book_category_label = Column(String(50), nullable=False)
     storage_location_id = Column(Integer, ForeignKey("locations.location_id", ondelete="SET NULL"))
-    status = Column(String(20), default="Available", nullable=False, index=True)
+    status = Column(String(20), default="可借閱", nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
@@ -67,7 +67,7 @@ class Book(Base):
     
     __table_args__ = (
         CheckConstraint(
-            "status IN ('Available', 'On Loan', 'Lost', 'Archived')", 
+            "status IN ('可借閱', '不可借閱', '遺失', '非管理中')", 
             name="check_book_status"
         ),
     )
@@ -90,5 +90,5 @@ class Transaction(Base):
     teacher = relationship("Teacher", back_populates="transactions")
     
     __table_args__ = (
-        CheckConstraint("action IN ('borrow', 'return')", name="check_transaction_action"),
+        CheckConstraint("action IN ('借閱', '歸還')", name="check_transaction_action"),
     )

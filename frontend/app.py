@@ -12,11 +12,15 @@ st.set_page_config(
 
 # Initialize session state
 if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+    # DEV MODE AUTO-LOGIN
+    st.session_state.authenticated = True
+    st.session_state.token = "dev_token_bypass"
+    st.session_state.user = {"username": "admin (dev)", "role": "admin"}
+
 if 'token' not in st.session_state:
-    st.session_state.token = None
+     st.session_state.token = "dev_token_bypass"
 if 'user' not in st.session_state:
-    st.session_state.user = None
+     st.session_state.user = {"username": "admin (dev)", "role": "admin"}
 
 def main():
     if not st.session_state.authenticated:

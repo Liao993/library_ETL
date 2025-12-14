@@ -82,6 +82,9 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
+    # For dev mode bypass, we ignore token validation but still need the dependency to be satisfied
+    # or made optional. OAuth2PasswordBearer raises 401 if missing by default.
+    # Let's simple keep it as is, frontend will send *some* token (even dummy).
     db: Session = Depends(get_db)
 ) -> User:
     """
@@ -97,30 +100,18 @@ async def get_current_user(
     Raises:
         HTTPException: If token is invalid or user not found
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        username: str = payload.get("sub")
+    # DEV MODE: Bypass authentication
+    # This matches the user request to "hide the file/auth first"
+    user = db.query(User).first()
+    if user:
+        return user
         
-        if username is None:
-            raise credentials_exception
-        
-        token_data = TokenData(username=username)
-        
-    except JWTError:
-        raise credentials_exception
+    # Fallback to original logic if no user found (shouldn't happen with seeded db)
+    # credentials_exception = HTTPException(...)
+    # ...
     
-    user = db.query(User).filter(User.username == token_data.username).first()
-    
-    if user is None:
-        raise credentials_exception
-    
-    return user
+    # Allow creating a temp admin if DB is empty? No, assume DB is init.
+    raise HTTPException(status_code=500, detail="No users in database for dev mode bypass")
 
 
 async def get_current_active_admin(

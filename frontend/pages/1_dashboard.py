@@ -13,24 +13,28 @@ st.title("📊 Library Dashboard")
 
 # Fetch data
 with st.spinner("Loading data..."):
-    books = fetch_data("books/", st.session_state.token, params={"limit": 1000})
-    transactions = fetch_data("transactions/", st.session_state.token, params={"limit": 1000})
+    try:
+        stats = fetch_data("books/stats", st.session_state.token)
+        # Still fetch books for the table/chart, maybe with pagination later
+        books = fetch_data("books/", st.session_state.token, params={"limit": 1000}) 
+        transactions = fetch_data("transactions/", st.session_state.token, params={"limit": 10})
+    except Exception as e:
+        st.error(f"Failed to fetch data: {e}")
+        st.stop()
+
+# Display Metrics from Backend
+if stats:
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("Total Books", stats.get('total_books', 0))
+    col2.metric("Available", stats.get('available_books', 0))
+    col3.metric("Not Available", stats.get('not_available_books', 0))
+    col4.metric("Donation", stats.get('donation_books', 0))
+    col5.metric("Self Bought", stats.get('self_bought_books', 0))
+   
+    
 
 if books:
     df_books = pd.DataFrame(books)
-    
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    total_books = len(df_books)
-    available_books = len(df_books[df_books['status'] == 'Available'])
-    on_loan_books = len(df_books[df_books['status'] == 'On Loan'])
-    lost_books = len(df_books[df_books['status'] == 'Lost'])
-    
-    col1.metric("Total Books", total_books)
-    col2.metric("Available", available_books)
-    col3.metric("On Loan", on_loan_books)
-    col4.metric("Lost/Archived", lost_books + len(df_books[df_books['status'] == 'Archived']))
     
     # Charts
     st.subheader("Book Status Distribution")

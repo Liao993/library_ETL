@@ -126,21 +126,21 @@ async def create_transaction(
         )
     
     # Validate action based on current book status
-    if transaction_data.action == "borrow":
-        if book.status != "Available":
+    if transaction_data.action == "借閱":
+        if book.status != "可借閱":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Book is currently {book.status} and cannot be borrowed"
             )
-        new_status = "On Loan"
+        new_status = "不可借閱"
     
-    elif transaction_data.action == "return":
-        if book.status != "On Loan":
+    elif transaction_data.action == "歸還":
+        if book.status != "不可借閱":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Book is currently {book.status} and cannot be returned"
             )
-        new_status = "Available"
+        new_status = "可借閱"
     
     # Create transaction
     new_transaction = Transaction(**transaction_data.model_dump())
